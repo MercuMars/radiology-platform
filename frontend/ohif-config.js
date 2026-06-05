@@ -15,4 +15,6 @@ window.config = {
     ],
   },
   studyListFunctionsEnabled: true,
+  showStudyList: true,
+  filterQueryParam: false,
 };
