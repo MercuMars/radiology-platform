@@ -29,6 +29,7 @@ services:
 
   api:
     build: ./backend
+    restart: always
     environment:
       - DATABASE_URL=postgresql://radio:radio123@db/cases
     depends_on:

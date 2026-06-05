@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -11,89 +9,23 @@ import hashlib
 import jwt
 import os
 import httpx
-import tempfile
-import shutil
-from pathlib import Path
+
+from .database import engine, SessionLocal, Base
+from .models import User, System, Case, CaseImage, Comment, Report, Collection, Template, Annotation
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://radio:radio123@db/cases")
 SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_medical_key_2024")
 ALGORITHM = "HS256"
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
 def hash_password(password: str) -> str:
-    """使用 SHA256 哈希密码（简化版本，生产环境应使用 bcrypt）"""
+    """使用 SHA256 哈希密码"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
     return hash_password(plain_password) == hashed_password
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-# ==================== Database Models ====================
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
-    role = Column(String(20), default="student")  # student, teacher, admin
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-class System(Base):
-    """身体系统/科室分类"""
-    __tablename__ = "systems"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)  # 呼吸系统, 循环系统等
-    code = Column(String(50), unique=True, nullable=False)    # respiratory, cardiovascular等
-    description = Column(Text)
-    icon = Column(String(50))  # 图标标识
-    sort_order = Column(Integer, default=0)
-
-class Case(Base):
-    __tablename__ = "cases"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    patient_id = Column(String(100))
-    modality = Column(String(50))  # CT, MRI, X-Ray, etc.
-    system_id = Column(Integer, ForeignKey("systems.id"))  # 所属系统
-    body_part = Column(String(100))
-    diagnosis = Column(Text)
-    teaching_points = Column(Text)
-    difficulty_level = Column(Integer, default=1)  # 1-5
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class CaseImage(Base):
-    __tablename__ = "case_images"
-    id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
-    dicom_instance_id = Column(String(255))
-    image_type = Column(String(50))  # axial, sagittal, coronal等
-    description = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-class Comment(Base):
-    __tablename__ = "comments"
-    id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-class Report(Base):
-    __tablename__ = "reports"
-    id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
-    technique = Column(Text)
-    findings = Column(Text)
-    impression = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 # ==================== Pydantic Models ====================
 
@@ -202,12 +134,16 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class AnnotationCreate(BaseModel):
+    annotation_data: str
+
 # ==================== FastAPI App ====================
 
 app = FastAPI(
     title="放射科专业病例阅片学习平台 API",
-    description="放射科专业病例阅片学习平台 - 支持按系统分类浏览病例",
-    version="1.0.0"
+    description="支持图谱分类、结构化模板与标注持久化",
+    version="1.1.0",
+    root_path="/api"
 )
 
 app.add_middleware(
@@ -256,6 +192,15 @@ async def startup():
             ]
             db.add_all(default_systems)
             db.commit()
+
+        # 初始化默认报告模板
+        if db.query(Template).count() == 0:
+            default_templates = [
+                Template(name="LI-RADS 肝脏结节报告", modality="CT", body_part="肝脏", content_findings="肝脏形态大小正常，表面光滑。动脉期可见一大小约[]mm强化结节，静脉期/延迟期呈廓清表现，包膜强化(+)。", content_impression="符合 LI-RADS 5类典型肝细胞癌表现。"),
+                Template(name="肺结节标准报告 (Lung-RADS)", modality="CT", body_part="肺部", content_findings="双肺纹理清晰。[]肺[]叶可见一实性/磨玻璃结节，直径约[]mm，边缘见分叶/毛刺/胸膜牵拉征。", content_impression="肺部结节，建议结合临床及历史影像对比，Lung-RADS []类。")
+            ]
+            db.add_all(default_templates)
+            db.commit()
     finally:
         db.close()
 
@@ -269,11 +214,9 @@ async def health_check():
 
 @app.post("/auth/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    # 检查用户名是否已存在
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="用户名已存在")
-    # 创建新用户
     hashed_password = hash_password(user.password)
     db_user = User(username=user.username, hashed_password=hashed_password)
     db.add(db_user)
@@ -286,7 +229,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    # 生成 JWT token
     access_token = jwt.encode(
         {"sub": user.username, "user_id": user.id, "exp": datetime.utcnow() + timedelta(days=7)},
         SECRET_KEY,
@@ -416,7 +358,6 @@ def delete_case_image(image_id: int, db: Session = Depends(get_db), current_user
 
 @app.post("/cases/{case_id}/comments", response_model=CommentResponse)
 def add_comment(case_id: int, comment: CommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # 检查病例是否存在
     case = db.query(Case).filter(Case.id == case_id).first()
     if case is None:
         raise HTTPException(status_code=404, detail="病例未找到")
@@ -468,6 +409,32 @@ def add_report(case_id: int, report: ReportCreate, db: Session = Depends(get_db)
 def read_reports(case_id: int, db: Session = Depends(get_db)):
     reports = db.query(Report).filter(Report.case_id == case_id).order_by(Report.created_at.desc()).all()
     return reports
+
+# ==================== Templates & Annotations ====================
+
+@app.get("/templates/")
+def get_templates(db: Session = Depends(get_db)):
+    templates = db.query(Template).all()
+    return [{"id": t.id, "name": t.name, "findings": t.content_findings, "impression": t.content_impression} for t in templates]
+
+@app.post("/cases/{case_id}/annotations")
+def save_annotation(case_id: int, anno: AnnotationCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    db_anno = Annotation(case_id=case_id, user_id=current_user.id, annotation_data=anno.annotation_data)
+    db.add(db_anno)
+    db.commit()
+    return {"status": "success", "msg": "标注数据已保存"}
+
+@app.get("/cases/{case_id}/annotations")
+def get_annotations(case_id: int, db: Session = Depends(get_db)):
+    annos = db.query(Annotation).filter(Annotation.case_id == case_id).order_by(Annotation.created_at.desc()).all()
+    res = []
+    for a in annos:
+        user = db.query(User).filter(User.id == a.user_id).first()
+        res.append({
+            "id": a.id, "username": user.username if user else "未知",
+            "data": a.annotation_data, "time": a.created_at
+        })
+    return res
 
 # ==================== DICOM Upload Endpoints ====================
 
@@ -552,7 +519,7 @@ async def upload_dicom_folder(
                         db_image = CaseImage(
                             case_id=case_id,
                             dicom_instance_id=instance_id,
-                            image_type="axial",  # 默认类型
+                            image_type="axial",
                             description=f"从 {file.filename} 上传"
                         )
                         db = SessionLocal()

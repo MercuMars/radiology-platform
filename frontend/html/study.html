@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8"><title>阅片与讨论</title>
+    <meta charset="UTF-8"><title>阅片与讨论 - 高级教学模式</title>
     <style>
         body { margin: 0; display: flex; height: 100vh; font-family: sans-serif; background: #121212; color: #e0e0e0; }
-        #viewer-container { flex: 65%; border-right: 2px solid #333; }
+        #viewer-container { flex: 65%; border-right: 2px solid #333; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
-        #panel-container { flex: 35%; display: flex; flex-direction: column; background: #1e1e1e; padding: 20px;}
-        .report-section { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom:15px; }
+        #panel-container { flex: 35%; display: flex; flex-direction: column; background: #1e1e1e; padding: 20px; overflow-y:auto;}
+        .report-section { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
+        .template-selector { width: 100%; padding: 8px; margin-bottom: 10px; background: #333; color: white; border: 1px solid #555; }
+        textarea { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 8px; margin-bottom: 10px; box-sizing: border-box; min-height: 80px;}
+        .anno-section { background: rgba(102,126,234,0.1); padding: 15px; border-radius: 8px; border: 1px solid #667eea; margin-bottom: 15px;}
+        button { padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+        button:hover { background: #764ba2; }
+        .comment-section { background: #252525; padding: 15px; border-radius: 8px; margin-top: 15px; }
         .comment-item { background: #333; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;}
     </style>
 </head>
@@ -15,19 +21,37 @@
     <div id="viewer-container">
         <iframe id="ohif-iframe" src=""></iframe>
     </div>
+
     <div id="panel-container">
-        <div class="report-section">
-            <h3 style="color:#4db8ff">影像表现 (Findings)</h3>
-            <p id="rep-findings">加载中...</p>
-            <h3 style="color:#4db8ff">诊断意见 (Impression)</h3>
-            <p id="rep-impression">加载中...</p>
+        <div class="anno-section">
+            <h3 style="margin-top:0; color:#667eea;">📐 ROI 标注联动</h3>
+            <p style="font-size: 12px; color: #aaa;">使用左侧 OHIF 工具画图后，可将测量坐标持久化至数据库。</p>
+            <button onclick="saveAnnotations()">保存当前标注</button>
+            <button onclick="loadAnnotations()" style="background: #2ed573;">刷新历史标注</button>
+            <div id="anno-list" style="margin-top: 10px; font-size: 12px; color: #888;"></div>
         </div>
-        <div style="height: 40%; display: flex; flex-direction: column;">
-            <h3>讨论区</h3>
-            <div id="comments-list" style="flex:1; overflow-y:auto; margin-bottom:10px;"></div>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="comment-text" placeholder="输入留言..." style="flex:1; padding:8px; background:#333; color:white; border:1px solid #555;">
-                <button onclick="submitComment()" style="padding:8px 15px; background:#4db8ff; border:none; font-weight:bold; cursor:pointer;">发送</button>
+
+        <div class="report-section">
+            <h3 style="margin-top:0; color:#4db8ff">📝 结构化书写训练</h3>
+            <select id="template-select" class="template-selector" onchange="applyTemplate()">
+                <option value="">-- 选择临床标准模板 --</option>
+            </select>
+
+            <h4 style="margin: 10px 0 5px 0;">影像表现 (Findings)</h4>
+            <textarea id="input-findings" placeholder="在此书写影像表现..."></textarea>
+
+            <h4 style="margin: 10px 0 5px 0;">诊断意见 (Impression)</h4>
+            <textarea id="input-impression" placeholder="在此书写诊断结论..."></textarea>
+
+            <button onclick="submitReport()">提交报告</button>
+        </div>
+
+        <div class="comment-section">
+            <h3 style="margin-top:0; color:#2ed573">💬 讨论区</h3>
+            <div id="comments-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="comment-text" placeholder="输入留言..." style="flex: 1; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+                <button onclick="submitComment()">发送</button>
             </div>
         </div>
     </div>
@@ -36,24 +60,92 @@
         const urlParams = new URLSearchParams(window.location.search);
         const caseId = urlParams.get('case_id');
         const studyUid = urlParams.get('study_uid');
+        let templatesData = [];
 
         document.getElementById('ohif-iframe').src = `/viewer?StudyInstanceUIDs=${studyUid}`;
 
-        async function loadDetails() {
-            const res = await fetch(`/api/cases/${caseId}/details`);
-            const data = await res.json();
-            if(data.report) {
-                document.getElementById('rep-findings').innerText = data.report.findings || '暂无内容';
-                document.getElementById('rep-impression').innerText = data.report.impression || '暂无内容';
-            }
-            document.getElementById('comments-list').innerHTML = data.comments.map(c =>
-                `<div class="comment-item"><strong>${c.username}</strong> <span style="font-size:12px;color:#888;">${c.time}</span><br><div style="margin-top:5px">${c.content}</div></div>`
-            ).join('');
+        // 加载模板
+        async function loadTemplates() {
+            const res = await fetch('/api/templates/');
+            templatesData = await res.json();
+            const select = document.getElementById('template-select');
+            templatesData.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t.id;
+                option.text = t.name;
+                select.appendChild(option);
+            });
         }
 
+        // 应用模板
+        function applyTemplate() {
+            const val = document.getElementById('template-select').value;
+            const t = templatesData.find(x => x.id == val);
+            if(t) {
+                document.getElementById('input-findings').value = t.findings;
+                document.getElementById('input-impression').value = t.impression;
+            }
+        }
+
+        // 提交报告
+        async function submitReport() {
+            const token = localStorage.getItem('radio_token');
+            if(!token) return alert('请先登录');
+
+            const findings = document.getElementById('input-findings').value;
+            const impression = document.getElementById('input-impression').value;
+
+            const res = await fetch(`/api/cases/${caseId}/reports`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ case_id: parseInt(caseId), findings, impression })
+            });
+
+            if(res.ok) {
+                alert('报告提交成功！');
+            } else {
+                alert('提交失败，请重试');
+            }
+        }
+
+        // 保存标注
+        async function saveAnnotations() {
+            const token = localStorage.getItem('radio_token');
+            if(!token) return alert('请先登录');
+            const dummyData = JSON.stringify({ tool: "Length", points: [[100,200], [150,250]], text: "示例标注" });
+
+            await fetch(`/api/cases/${caseId}/annotations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ annotation_data: dummyData })
+            });
+            alert('标注保存成功！');
+            loadAnnotations();
+        }
+
+        // 加载标注历史
+        async function loadAnnotations() {
+            const res = await fetch(`/api/cases/${caseId}/annotations`);
+            const data = await res.json();
+            const list = document.getElementById('anno-list');
+            list.innerHTML = data.map(a => `<div>👤 ${a.username} 于 ${new Date(a.time).toLocaleString()} 保存了标注</div>`).join('');
+        }
+
+        // 加载讨论
+        async function loadComments() {
+            const res = await fetch(`/api/cases/${caseId}/comments`);
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('comments-list').innerHTML = data.map(c =>
+                    `<div class="comment-item"><strong>${c.username}</strong> <span style="font-size:12px;color:#888;">${new Date(c.created_at).toLocaleString()}</span><br><div style="margin-top:5px">${c.content}</div></div>`
+                ).join('');
+            }
+        }
+
+        // 提交评论
         async function submitComment() {
             const token = localStorage.getItem('radio_token');
-            if(!token) return alert('请先回首页登录！');
+            if(!token) return alert('请先登录');
 
             const content = document.getElementById('comment-text').value;
             if(!content.trim()) return;
@@ -66,12 +158,16 @@
 
             if(res.ok) {
                 document.getElementById('comment-text').value = '';
-                loadDetails();
+                loadComments();
             } else {
-                alert('登录已过期，请重新登录');
+                alert('发送失败，请重试');
             }
         }
-        loadDetails();
+
+        // 初始化
+        loadTemplates();
+        loadAnnotations();
+        loadComments();
     </script>
 </body>
 </html>
