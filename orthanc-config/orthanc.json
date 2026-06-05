@@ -3,14 +3,17 @@
   "StorageDirectory": "/var/lib/orthanc/db",
   "DicomWeb": {
     "Enable": true,
-    "Root": "/dicom-web/"
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado",
+    "SopClassUidInReturnedUri": true
   },
   "HttpServerEnabled": true,
   "DicomServerEnabled": true,
   "AuthenticationEnabled": false,
   "RemoteAccessAllowed": true,
   "StoreDicom": true,
-  "Plugins": [],
+  "Plugins": ["/usr/share/orthanc/plugins"],
   "CorsRequests": {
     "AllowOrigin": "*",
     "AllowCredentials": true,

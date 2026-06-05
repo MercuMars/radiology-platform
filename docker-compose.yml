@@ -13,7 +13,8 @@ services:
       - viewer
 
   orthanc:
-    image: jodogne/orthanc-plugins:latest
+    image: orthancteam/orthanc:latest
+    command: /etc/orthanc/orthanc.json
     volumes:
       - ./orthanc-config/orthanc.json:/etc/orthanc/orthanc.json:ro
       - orthanc_db:/var/lib/orthanc/db
