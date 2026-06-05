@@ -522,7 +522,7 @@ async def upload_dicom_folder(
 
 @app.get("/dicom/studies")
 async def list_dicom_studies(current_user: User = Depends(get_current_user)):
-    """列出 Orthanc 中的所有研究"""
+    """列出 Orthanc 中的所有研究（脱敏处理）"""
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"{ORTHANC_URL}/studies", timeout=10.0)
@@ -535,15 +535,30 @@ async def list_dicom_studies(current_user: User = Depends(get_current_user)):
                         detail = detail_response.json()
                         # Orthanc 嵌套结构：MainDicomTags 和 PatientMainDicomTags
                         main_tags = detail.get("MainDicomTags", {})
-                        patient_tags = detail.get("PatientMainDicomTags", {})
+                        patient_tags = detail.get("PatientMainDicomTags", "")
+
+                        # 计算年龄（从出生日期）
+                        birth_date = patient_tags.get("PatientBirthDate", "")
+                        age = ""
+                        if birth_date and len(birth_date) == 8:
+                            try:
+                                birth_year = int(birth_date[:4])
+                                current_year = 2026
+                                age = f"{current_year - birth_year}岁"
+                            except:
+                                age = "未知"
+
+                        # 脱敏处理：不返回真实姓名和ID
                         study_list.append({
                             "orthanc_id": study_id,
                             "study_instance_uid": main_tags.get("StudyInstanceUID", ""),
-                            "patient_name": patient_tags.get("PatientName", "未知"),
-                            "patient_id": patient_tags.get("PatientID", "未知"),
                             "study_date": main_tags.get("StudyDate", ""),
+                            "study_time": main_tags.get("StudyTime", ""),
                             "study_description": main_tags.get("StudyDescription", ""),
-                            "modality": main_tags.get("ModalitiesInStudy", [])
+                            "modality": main_tags.get("ModalitiesInStudy", []),
+                            "patient_age": age,
+                            "patient_sex": patient_tags.get("PatientSex", "未知"),
+                            "institution": main_tags.get("InstitutionName", ""),
                         })
                 return study_list
             return []

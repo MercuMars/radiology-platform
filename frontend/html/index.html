@@ -83,6 +83,19 @@
             .systems-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
             .cases-grid { grid-template-columns: 1fr; }
         }
+        /* 模态框样式 */
+        #case-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -148,6 +161,82 @@
                 <h2 class="section-title">📚 已上传的 DICOM 研究</h2>
                 <div id="studies-list"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- 创建病例模态框 -->
+    <div id="case-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <h2 style="margin-top: 0; color: #333;">创建病例</h2>
+            <form id="case-form" onsubmit="submitCase(event)">
+                <input type="hidden" id="case-orthanc-id">
+                <input type="hidden" id="case-study-uid">
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">病例标题 *</label>
+                    <input type="text" id="case-title" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">扫描部位</label>
+                    <input type="text" id="case-body-part" placeholder="如：胸部、腹部、头部" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">检查模态</label>
+                    <select id="case-modality" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                        <option value="">请选择</option>
+                        <option value="CT">CT</option>
+                        <option value="MRI">MRI</option>
+                        <option value="X-Ray">X-Ray</option>
+                        <option value="US">超声</option>
+                        <option value="PET">PET</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">所属系统</label>
+                    <select id="case-system" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                        <option value="">请选择</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">病史</label>
+                    <textarea id="case-history" rows="3" placeholder="患者主诉、现病史、既往史等" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">临床诊断</label>
+                    <textarea id="case-diagnosis" rows="2" placeholder="临床初步诊断" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">影像表现 (Findings)</label>
+                    <textarea id="case-findings" rows="4" placeholder="影像学所见" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">诊断意见 (Impression)</label>
+                    <textarea id="case-impression" rows="3" placeholder="影像学诊断意见" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">结论 (Conclusion)</label>
+                    <textarea id="case-conclusion" rows="2" placeholder="最终结论" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">教学要点</label>
+                    <textarea id="case-teaching" rows="2" placeholder="本病例的教学要点" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeCaseForm()" style="padding: 10px 20px; background: #ccc; border: none; border-radius: 6px; cursor: pointer;">取消</button>
+                    <button type="submit" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">创建病例</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -335,20 +424,44 @@
             filterInfo.innerHTML = `共 ${cases.length} 个病例`;
 
             grid.innerHTML = cases.map(c => `
-                <div class="case-card" onclick="viewCase(${c.id})">
-                    <div class="case-title">${c.title || '未命名病例'}</div>
-                    <div class="case-meta">
-                        ${c.modality ? `<span class="meta-tag modality">${c.modality}</span>` : ''}
-                        ${c.difficulty_level ? `<span class="meta-tag difficulty">难度 ${'⭐'.repeat(c.difficulty_level)}</span>` : ''}
-                        ${c.body_part ? `<span class="meta-tag">${c.body_part}</span>` : ''}
+                <div class="case-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div onclick="viewCase(${c.id})" style="flex: 1; cursor: pointer;">
+                            <div class="case-title">${c.title || '未命名病例'}</div>
+                            <div class="case-meta">
+                                ${c.modality ? `<span class="meta-tag modality">${c.modality}</span>` : ''}
+                                ${c.difficulty_level ? `<span class="meta-tag difficulty">难度 ${'⭐'.repeat(c.difficulty_level)}</span>` : ''}
+                                ${c.body_part ? `<span class="meta-tag">${c.body_part}</span>` : ''}
+                            </div>
+                            <div class="case-desc">${c.description || '暂无描述'}</div>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteCase(${c.id})" style="background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px;">删除</button>
                     </div>
-                    <div class="case-desc">${c.description || '暂无描述'}</div>
                 </div>
             `).join('');
         }
 
         function viewCase(caseId) {
             window.location.href = `/study.html?case_id=${caseId}`;
+        }
+
+        async function deleteCase(caseId) {
+            if (!confirm('确定要删除这个病例吗？')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/cases/${caseId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('病例已删除', 'success');
+                    loadCases();
+                } else {
+                    showToast('删除失败', 'error');
+                }
+            } catch (err) {
+                showToast('删除出错: ' + err.message, 'error');
+            }
         }
 
         // ==================== DICOM 上传 ====================
@@ -473,21 +586,107 @@
             }
 
             list.innerHTML = studies.map(s => `
-                <div class="study-card" onclick="openViewer('${s.study_instance_uid || ''}', '${s.orthanc_id}')" style="cursor: pointer;">
-                    <div class="study-info">
-                        <div>
-                            <strong>${s.patient_name || '未知患者'}</strong>
-                            <span style="color: #888; margin-left: 10px;">ID: ${s.patient_id || 'N/A'}</span>
+                <div class="study-card" style="cursor: pointer;">
+                    <div onclick="openViewer('${s.study_instance_uid || ''}', '${s.orthanc_id}')">
+                        <div class="study-info">
+                            <div>
+                                <span class="meta-tag modality">${s.modality || 'N/A'}</span>
+                                <span style="color: #888; margin-left: 10px;">${s.patient_sex === 'M' ? '男' : s.patient_sex === 'F' ? '女' : '未知'}</span>
+                                <span style="color: #888; margin-left: 10px;">${s.patient_age || '年龄未知'}</span>
+                            </div>
                         </div>
-                        <span class="meta-tag modality">${s.modality || 'N/A'}</span>
+                        <div class="study-details">
+                            <span>日期: ${formatDate(s.study_date) || 'N/A'}</span>
+                            <span style="margin-left: 15px;">${s.study_description || ''}</span>
+                        </div>
+                        <div style="margin-top: 8px; color: #667eea; font-size: 12px;">点击打开阅片 →</div>
                     </div>
-                    <div class="study-details">
-                        <span>日期: ${s.study_date || 'N/A'}</span>
-                        <span style="margin-left: 15px;">${s.study_description || ''}</span>
-                    </div>
-                    <div style="margin-top: 8px; color: #667eea; font-size: 12px;">点击打开阅片 →</div>
+                    <button onclick="event.stopPropagation(); showCaseForm('${s.orthanc_id}', '${s.study_instance_uid || ''}')" style="background: #2ed573; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 10px;">创建病例</button>
                 </div>
             `).join('');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return dateStr;
+            return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+        }
+
+        // ==================== 病例表单 ====================
+        function showCaseForm(orthancId, studyUid) {
+            document.getElementById('case-orthanc-id').value = orthancId;
+            document.getElementById('case-study-uid').value = studyUid;
+            document.getElementById('case-modal').style.display = 'flex';
+
+            // 加载系统分类到下拉框
+            const systemSelect = document.getElementById('case-system');
+            systemSelect.innerHTML = '<option value="">请选择</option>';
+            fetch(`${API_BASE}/systems/`)
+                .then(res => res.json())
+                .then(systems => {
+                    systems.forEach(s => {
+                        systemSelect.innerHTML += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+                    });
+                });
+        }
+
+        function closeCaseForm() {
+            document.getElementById('case-modal').style.display = 'none';
+            document.getElementById('case-form').reset();
+        }
+
+        async function submitCase(event) {
+            event.preventDefault();
+
+            const caseData = {
+                title: document.getElementById('case-title').value,
+                body_part: document.getElementById('case-body-part').value,
+                modality: document.getElementById('case-modality').value,
+                system_id: document.getElementById('case-system').value ? parseInt(document.getElementById('case-system').value) : null,
+                description: document.getElementById('case-history').value,
+                diagnosis: document.getElementById('case-diagnosis').value,
+                teaching_points: document.getElementById('case-teaching').value
+            };
+
+            try {
+                // 创建病例
+                const res = await fetch(`${API_BASE}/cases/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(caseData)
+                });
+
+                if (res.ok) {
+                    const caseResult = await res.json();
+
+                    // 保存报告
+                    const reportData = {
+                        case_id: caseResult.id,
+                        findings: document.getElementById('case-findings').value,
+                        impression: document.getElementById('case-impression').value
+                    };
+
+                    await fetch(`${API_BASE}/cases/${caseResult.id}/reports`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(reportData)
+                    });
+
+                    showToast('病例创建成功！', 'success');
+                    closeCaseForm();
+                    loadCases();
+                } else {
+                    const error = await res.json();
+                    showToast(error.detail || '创建失败', 'error');
+                }
+            } catch (err) {
+                showToast('创建出错: ' + err.message, 'error');
+            }
         }
 
         // ==================== 打开查看器 ====================
