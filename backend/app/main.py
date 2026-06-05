@@ -452,9 +452,7 @@ async def upload_dicom_files(
     results = []
     async with httpx.AsyncClient() as client:
         for file in files:
-            if not file.filename.lower().endswith('.dcm'):
-                results.append({"filename": file.filename, "status": "skipped", "reason": "不是 DICOM 文件"})
-                continue
+            # 尝试上传所有文件，由 Orthanc 判断是否为有效 DICOM
 
             try:
                 content = await file.read()

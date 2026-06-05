@@ -347,7 +347,7 @@
                 if (caseData.study_uid) {
                     iframe.style.display = 'block';
                     placeholder.style.display = 'none';
-                    iframe.src = `/viewer/viewer/${caseData.study_uid}`;
+                    iframe.src = `http://localhost:3000/?StudyInstanceUIDs=${caseData.study_uid}`;
                 } else {
                     iframe.style.display = 'none';
                     placeholder.style.display = 'flex';

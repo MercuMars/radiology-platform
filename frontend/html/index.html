@@ -532,12 +532,10 @@
             const formData = new FormData();
             let fileCount = 0;
 
-            // 追加选择的文件
+            // 追加选择的文件（接受所有文件类型，后端判断是否为 DICOM）
             for (let i = 0; i < files.length; i++) {
-                if (files[i].name.toLowerCase().endsWith('.dcm') || files[i].name.toLowerCase().endsWith('.ima')) {
-                    formData.append('files', files[i]);
-                    fileCount++;
-                }
+                formData.append('files', files[i]);
+                fileCount++;
             }
 
             // 【新增】：读取用户选择的分类系统
@@ -716,10 +714,10 @@
         function openViewer(studyInstanceUid, orthancId) {
             if (studyInstanceUid) {
                 // 使用 StudyInstanceUID 打开 OHIF Viewer
-                window.open(`/viewer/?StudyInstanceUIDs=${studyInstanceUid}`, '_blank');
+                window.open(`http://localhost:3000/?StudyInstanceUIDs=${studyInstanceUid}`, '_blank');
             } else {
                 // 使用 Orthanc ID 打开
-                window.open(`/viewer/?OrthancStudyID=${orthancId}`, '_blank');
+                window.open(`http://localhost:3000/?OrthancStudyID=${orthancId}`, '_blank');
             }
         }
 

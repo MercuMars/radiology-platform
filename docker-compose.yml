@@ -27,6 +27,12 @@ services:
       - POSTGRES_DB=cases
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radio -d cases"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   api:
     build: ./backend
@@ -34,15 +40,18 @@ services:
     environment:
       - DATABASE_URL=postgresql://radio:radio123@db/cases
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   viewer:
     image: ohif/viewer:latest
+    ports:
+      - "3000:80"
     environment:
       - APP_CONFIG=/usr/share/nginx/html/app-config.js
     volumes:
       - ./frontend/ohif-config.js:/usr/share/nginx/html/app-config.js:ro
-      - ./frontend/ohif-index.html:/usr/share/nginx/html/index.html:ro
+      - ./frontend/ohif-index-fixed.html:/usr/share/nginx/html/index.html:ro
 
 volumes:
   pgdata:
