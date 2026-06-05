@@ -32,6 +32,32 @@
         .card-title { color: #4db8ff; font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .card-title .icon { font-size: 16px; }
 
+        /* 标注控制卡片 */
+        .anno-card { background: rgba(102,126,234,0.1); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #667eea; }
+        .anno-card .card-title { color: #667eea; }
+        .btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; }
+        .btn-primary { background: #667eea; color: #fff; flex: 1; }
+        .btn-primary:hover { background: #764ba2; }
+        .btn-success { background: #2ed573; color: #fff; flex: 1; }
+        .btn-success:hover { background: #26b85e; }
+        .btn-danger { background: #ff4757; color: #fff; width: 100%; }
+        .btn-danger:hover { background: #e03e4d; }
+        .btn-secondary { background: #444; color: #fff; }
+        .btn-secondary:hover { background: #555; }
+        .anno-list { margin-top: 10px; font-size: 12px; color: #888; max-height: 150px; overflow-y: auto; }
+        .anno-item { background: #1a1a2e; padding: 8px; margin-bottom: 5px; border-radius: 4px; }
+        .anno-item .anno-user { color: #667eea; font-weight: 500; }
+        .anno-item .anno-time { color: #666; font-size: 10px; margin-left: 8px; }
+        .anno-item .anno-preview { color: #2ed573; margin-top: 3px; }
+
+        /* 报告区域 */
+        .template-selector { width: 100%; padding: 8px; margin-bottom: 10px; background: #1a1a2e; color: #fff; border: 1px solid #0f3460; border-radius: 4px; font-size: 13px; }
+        .template-selector:focus { outline: none; border-color: #4db8ff; }
+        .report-label { color: #888; font-size: 12px; margin: 10px 0 5px 0; font-weight: 500; }
+        .report-textarea { width: 100%; background: #1a1a2e; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 6px; padding: 10px; font-size: 13px; line-height: 1.5; resize: vertical; font-family: inherit; min-height: 80px; }
+        .report-textarea:focus { outline: none; border-color: #4db8ff; }
+
         /* 临床资料 */
         .clinical-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
         .clinical-info .item { background: #1a1a2e; padding: 8px; border-radius: 4px; }
@@ -42,19 +68,12 @@
         .report-content { background: #1a1a2e; padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
         .report-content.empty { color: #666; font-style: italic; }
 
-        /* 笔记（可编辑） */
+        /* 笔记 */
         .note-textarea { width: 100%; min-height: 100px; background: #1a1a2e; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 6px; padding: 10px; font-size: 13px; line-height: 1.5; resize: vertical; font-family: inherit; }
         .note-textarea:focus { outline: none; border-color: #4db8ff; }
         .note-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
-        .btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; }
-        .btn-primary { background: #4db8ff; color: #fff; }
-        .btn-primary:hover { background: #3a9fd9; }
-        .btn-success { background: #2ed573; color: #fff; }
-        .btn-success:hover { background: #26b85e; }
-        .btn-secondary { background: #444; color: #fff; }
-        .btn-secondary:hover { background: #555; }
 
-        /* 右侧底部：评论区 */
+        /* 评论区 */
         .comments-section { background: #16213e; border-top: 2px solid #0f3460; display: flex; flex-direction: column; max-height: 250px; }
         .comments-header { padding: 10px 15px; background: #0f3460; font-size: 13px; font-weight: 600; color: #4db8ff; }
         .comments-list { flex: 1; overflow-y: auto; padding: 10px 15px; }
@@ -79,7 +98,7 @@
 <body>
     <!-- 顶部导航 -->
     <div class="top-bar">
-        <a href="/" class="back-btn">← 返回大厅</a>
+        <a href="/" class="back-btn">&larr; 返回大厅</a>
         <div class="case-title" id="case-title">加载中...</div>
         <div style="width: 80px;"></div>
     </div>
@@ -91,7 +110,7 @@
             <iframe id="ohif-iframe" src=""></iframe>
             <!-- 无影像时显示的提示 -->
             <div id="no-image-placeholder" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#1a1a2e; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                <div style="font-size:64px; margin-bottom:20px;">📷</div>
+                <div style="font-size:64px; margin-bottom:20px;">&#x1F4F7;</div>
                 <div style="font-size:18px; color:#4db8ff; margin-bottom:10px;">暂无关联影像</div>
                 <div style="font-size:13px; color:#888; margin-bottom:20px;">请先在大厅上传 DICOM 文件，或从已有研究中选择</div>
                 <button onclick="showStudySelector()" style="padding:10px 20px; background:#4db8ff; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">选择已有研究</button>
@@ -102,9 +121,23 @@
         <div class="info-panel">
             <!-- 可滚动内容区 -->
             <div class="scroll-content">
+
+                <!-- ====== 标注控制台 (第三阶段核心) ====== -->
+                <div class="anno-card">
+                    <div class="card-title"><span class="icon">&#x1F4D0;</span> 阅片标注控制台</div>
+                    <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">使用左侧 OHIF 工具画图后，可将测量坐标持久化至数据库。</p>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="requestAnnotationsFromOHIF()">&#x1F4BE; 存档当前标注</button>
+                        <button class="btn btn-success" onclick="loadAnnotations()">&#x1F504; 刷新历史记录</button>
+                    </div>
+                    <div class="anno-list" id="anno-list">
+                        <div class="empty-state">暂无标注记录</div>
+                    </div>
+                </div>
+
                 <!-- 病人临床资料 -->
                 <div class="card">
-                    <div class="card-title"><span class="icon">👤</span> 临床资料</div>
+                    <div class="card-title"><span class="icon">&#x1F464;</span> 临床资料</div>
                     <div class="clinical-info">
                         <div class="item">
                             <div class="label">患者ID</div>
@@ -133,44 +166,45 @@
                     </div>
                 </div>
 
-                <!-- Findings（只读） -->
+                <!-- ====== 结构化报告系统 (第三阶段) ====== -->
                 <div class="card">
-                    <div class="card-title"><span class="icon">📋</span> 影像表现 (Findings)</div>
-                    <div class="report-content" id="findings-content">加载中...</div>
+                    <div class="card-title"><span class="icon">&#x1F4DD;</span> 结构化报告系统</div>
+                    <select id="template-select" class="template-selector" onchange="applyTemplate()">
+                        <option value="">-- 点击选择临床标准模板 --</option>
+                    </select>
+                    <div class="report-label">影像表现 (Findings)</div>
+                    <textarea class="report-textarea" id="input-findings" placeholder="仔细观察影像，记录异常征象..."></textarea>
+                    <div class="report-label">诊断意见 (Impression)</div>
+                    <textarea class="report-textarea" id="input-impression" placeholder="结合临床信息得出结论..."></textarea>
+                    <button class="btn btn-danger" onclick="submitReport()" style="margin-top: 10px;">&#x1F4C4; 正式归档提交</button>
                 </div>
 
-                <!-- Impression（只读） -->
+                <!-- 教学要点 -->
                 <div class="card">
-                    <div class="card-title"><span class="icon">🔬</span> 诊断意见 (Impression)</div>
-                    <div class="report-content" id="impression-content">加载中...</div>
-                </div>
-
-                <!-- 教学要点（只读） -->
-                <div class="card">
-                    <div class="card-title"><span class="icon">📚</span> 教学要点</div>
+                    <div class="card-title"><span class="icon">&#x1F4DA;</span> 教学要点</div>
                     <div class="report-content" id="teaching-content">加载中...</div>
                 </div>
 
-                <!-- 个人笔记（可编辑，不公开） -->
+                <!-- 个人笔记 -->
                 <div class="card">
-                    <div class="card-title"><span class="icon">✏️</span> 我的笔记 <span style="font-size: 11px; color: #666;">（仅自己可见）</span></div>
+                    <div class="card-title"><span class="icon">&#x270F;&#xFE0F;</span> 我的笔记 <span style="font-size: 11px; color: #666;">（仅自己可见）</span></div>
                     <textarea class="note-textarea" id="my-notes" placeholder="在此记录你的学习笔记、观察要点或疑问..."></textarea>
                     <div class="note-actions">
                         <button class="btn btn-secondary" onclick="clearNotes()">清空</button>
-                        <button class="btn btn-primary" onclick="saveNotes()">保存笔记</button>
+                        <button class="btn btn-primary" onclick="saveNotes()" style="flex: 0;">保存笔记</button>
                     </div>
                 </div>
             </div>
 
             <!-- 底部：公开评论区 -->
             <div class="comments-section">
-                <div class="comments-header">💬 公开讨论区</div>
+                <div class="comments-header">&#x1F4AC; 公开讨论区</div>
                 <div class="comments-list" id="comments-list">
                     <div class="empty-state">暂无评论</div>
                 </div>
                 <div class="comment-input-area">
                     <input type="text" id="comment-input" placeholder="输入你的评论..." onkeypress="if(event.key==='Enter')submitComment()">
-                    <button class="btn btn-success" onclick="submitComment()">发送</button>
+                    <button class="btn btn-success" onclick="submitComment()" style="flex: 0;">发送</button>
                 </div>
             </div>
         </div>
@@ -182,6 +216,7 @@
         const caseId = urlParams.get('case_id');
         const token = localStorage.getItem('radio_token');
         const currentUser = JSON.parse(localStorage.getItem('radio_user') || 'null');
+        let templatesData = [];
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
@@ -191,20 +226,95 @@
             }
             loadCaseDetails();
             loadComments();
+            loadTemplates();
+            loadAnnotations();
         });
 
-        // 加载病例详情
+        // ============================================================
+        // 核心突破：监听来自 OHIF iframe 的回传数据
+        // ============================================================
+        window.addEventListener('message', async (event) => {
+            if (event.data.action === 'RETURN_MEASUREMENTS') {
+                const measurements = event.data.payload;
+                console.log("[父窗口] 成功接收到 OHIF 传出的数据:", measurements);
+
+                if (!token) return showToast('权限拒绝：请先登录', 'error');
+
+                // 将拦截到的 OHIF 数据序列化并发送给 FastAPI 后端
+                try {
+                    const res = await fetch(`/api/cases/${caseId}/annotations`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ annotation_data: JSON.stringify(measurements) })
+                    });
+
+                    if (res.ok) {
+                        showToast('OHIF 标注数据已破壁穿透并存入数据库！', 'success');
+                        loadAnnotations();
+                    } else {
+                        const err = await res.json();
+                        showToast(err.detail || '存储失败', 'error');
+                    }
+                } catch (err) {
+                    showToast('网络错误，存档失败', 'error');
+                }
+            }
+        });
+
+        // 向 iframe 发送索要数据的指令
+        function requestAnnotationsFromOHIF() {
+            const iframe = document.getElementById('ohif-iframe').contentWindow;
+            iframe.postMessage({ action: 'GET_MEASUREMENTS' }, '*');
+            showToast('已向 OHIF 发送标注抓取指令...', 'success');
+        }
+
+        // 获取并展示历史标注记录
+        async function loadAnnotations() {
+            try {
+                const res = await fetch(`/api/cases/${caseId}/annotations`);
+                if (!res.ok) throw new Error('加载失败');
+                const data = await res.json();
+
+                const list = document.getElementById('anno-list');
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="empty-state">暂无标注记录，请在 OHIF 中测量后点击存档</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map(a => {
+                    let preview = "未知数据";
+                    try {
+                        const parsed = JSON.parse(a.data);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            preview = `${parsed[0].toolType || '测量'}: ${parsed[0].text || ''}`;
+                        }
+                    } catch(e) {
+                        preview = String(a.data).substring(0, 50);
+                    }
+
+                    return `<div class="anno-item">
+                        <span class="anno-user">&#x1F464; ${escapeHtml(a.username || '匿名')}</span>
+                        <span class="anno-time">${formatTime(a.time || a.created_at)}</span>
+                        <div class="anno-preview">${escapeHtml(preview)}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                console.error('加载标注失败:', err);
+            }
+        }
+
+        // ====== 加载病例详情 ======
         async function loadCaseDetails() {
             try {
-                // 加载病例基本信息
                 const caseRes = await fetch(`/api/cases/${caseId}`);
                 if (!caseRes.ok) throw new Error('加载病例失败');
                 const caseData = await caseRes.json();
 
-                // 更新页面标题
                 document.getElementById('case-title').textContent = caseData.title || '未命名病例';
 
-                // 更新临床资料
                 document.getElementById('patient-id').textContent = caseData.patient_id || '--';
                 document.getElementById('modality').textContent = caseData.modality || '--';
                 document.getElementById('body-part').textContent = caseData.body_part || '--';
@@ -212,21 +322,14 @@
                 document.getElementById('diagnosis').textContent = caseData.diagnosis || '--';
                 document.getElementById('description').textContent = caseData.description || '--';
 
-                // 加载报告（Findings/Impression）
+                // 加载已有报告内容到编辑区
                 const reportRes = await fetch(`/api/cases/${caseId}/reports`);
                 if (reportRes.ok) {
                     const reports = await reportRes.json();
                     if (reports.length > 0) {
                         const latest = reports[0];
-                        document.getElementById('findings-content').textContent = latest.findings || '暂无内容';
-                        document.getElementById('impression-content').textContent = latest.impression || '暂无内容';
-                        if (!latest.findings) document.getElementById('findings-content').classList.add('empty');
-                        if (!latest.impression) document.getElementById('impression-content').classList.add('empty');
-                    } else {
-                        document.getElementById('findings-content').textContent = '暂无报告';
-                        document.getElementById('impression-content').textContent = '暂无报告';
-                        document.getElementById('findings-content').classList.add('empty');
-                        document.getElementById('impression-content').classList.add('empty');
+                        document.getElementById('input-findings').value = latest.findings || '';
+                        document.getElementById('input-impression').value = latest.impression || '';
                     }
                 }
 
@@ -234,7 +337,7 @@
                 document.getElementById('teaching-content').textContent = caseData.teaching_points || '暂无教学要点';
                 if (!caseData.teaching_points) document.getElementById('teaching-content').classList.add('empty');
 
-                // 加载个人笔记
+                // 个人笔记
                 loadMyNotes();
 
                 // 处理影像显示
@@ -242,13 +345,10 @@
                 const iframe = document.getElementById('ohif-iframe');
 
                 if (caseData.study_uid) {
-                    // 有 study_uid，加载 OHIF Viewer
                     iframe.style.display = 'block';
                     placeholder.style.display = 'none';
-                    // 使用 OHIF Viewer 的正确路由格式
                     iframe.src = `/viewer/viewer/${caseData.study_uid}`;
                 } else {
-                    // 无 study_uid，显示提示
                     iframe.style.display = 'none';
                     placeholder.style.display = 'flex';
                 }
@@ -257,7 +357,72 @@
             }
         }
 
-        // 加载个人笔记（从 localStorage）
+        // ====== 报告模板系统 ======
+        async function loadTemplates() {
+            try {
+                const res = await fetch('/api/templates/');
+                if (!res.ok) return;
+                templatesData = await res.json();
+                const select = document.getElementById('template-select');
+                templatesData.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.text = t.name;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error('加载模板失败:', err);
+            }
+        }
+
+        function applyTemplate() {
+            const val = document.getElementById('template-select').value;
+            if (!val) return;
+            const t = templatesData.find(x => x.id == val);
+            if (!t) return;
+
+            const currentFindings = document.getElementById('input-findings').value.trim();
+            const currentImpression = document.getElementById('input-impression').value.trim();
+            if ((currentFindings || currentImpression) && !confirm('当前报告内容将被模板覆盖，确认继续？')) {
+                document.getElementById('template-select').value = '';
+                return;
+            }
+            document.getElementById('input-findings').value = t.findings || '';
+            document.getElementById('input-impression').value = t.impression || '';
+            showToast('模板已应用，请修改后归档', 'success');
+        }
+
+        async function submitReport() {
+            if (!token) return showToast('请先登录', 'error');
+            const findings = document.getElementById('input-findings').value.trim();
+            const impression = document.getElementById('input-impression').value.trim();
+            if (!findings && !impression) return showToast('报告内容不能为空', 'error');
+
+            try {
+                const res = await fetch(`/api/cases/${caseId}/reports`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        case_id: parseInt(caseId),
+                        findings: findings,
+                        impression: impression
+                    })
+                });
+                if (res.ok) {
+                    showToast('结构化报告已归档', 'success');
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || '归档失败', 'error');
+                }
+            } catch (err) {
+                showToast('网络错误: ' + err.message, 'error');
+            }
+        }
+
+        // ====== 个人笔记 ======
         function loadMyNotes() {
             const savedNotes = localStorage.getItem(`notes_case_${caseId}`);
             if (savedNotes) {
@@ -265,14 +430,12 @@
             }
         }
 
-        // 保存个人笔记
         function saveNotes() {
             const notes = document.getElementById('my-notes').value;
             localStorage.setItem(`notes_case_${caseId}`, notes);
             showToast('笔记已保存', 'success');
         }
 
-        // 清空笔记
         function clearNotes() {
             if (confirm('确定要清空笔记吗？')) {
                 document.getElementById('my-notes').value = '';
@@ -281,7 +444,7 @@
             }
         }
 
-        // 加载评论
+        // ====== 评论系统 ======
         async function loadComments() {
             try {
                 const res = await fetch(`/api/cases/${caseId}/comments`);
@@ -296,20 +459,18 @@
 
                 list.innerHTML = comments.map(c => `
                     <div class="comment-item">
-                        <span class="comment-user">${c.username || '匿名用户'}</span>
+                        <span class="comment-user">${escapeHtml(c.username || '匿名用户')}</span>
                         <span class="comment-time">${formatTime(c.created_at)}</span>
                         <div class="comment-text">${escapeHtml(c.content)}</div>
                     </div>
                 `).join('');
 
-                // 滚动到底部
                 list.scrollTop = list.scrollHeight;
             } catch (err) {
                 console.error('加载评论失败:', err);
             }
         }
 
-        // 提交评论
         async function submitComment() {
             if (!token) {
                 showToast('请先登录后再评论', 'error');
@@ -343,7 +504,7 @@
             }
         }
 
-        // 格式化时间
+        // ====== 研究选择器 ======
         function formatTime(timeStr) {
             if (!timeStr) return '';
             const date = new Date(timeStr);
@@ -361,14 +522,17 @@
             return `${month}-${day} ${hours}:${minutes}`;
         }
 
-        // HTML转义
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return dateStr;
+            return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(text || '');
             return div.innerHTML;
         }
 
-        // 显示Toast
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -377,18 +541,15 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // 显示研究选择器
         async function showStudySelector() {
             document.getElementById('study-modal').style.display = 'flex';
             await loadOrthancStudies();
         }
 
-        // 关闭研究选择器
         function closeStudySelector() {
             document.getElementById('study-modal').style.display = 'none';
         }
 
-        // 加载 Orthanc 研究列表
         async function loadOrthancStudies() {
             const list = document.getElementById('studies-list');
             list.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">加载中...</div>';
@@ -402,7 +563,7 @@
                 const studies = await res.json();
 
                 if (studies.length === 0) {
-                    list.innerHTML = '<div style="text-align:center; color:#888; padding:40px;"><div style="font-size:48px; margin-bottom:15px;">📭</div><div>暂无 DICOM 研究</div><div style="font-size:12px; margin-top:10px;">请先在大厅上传 DICOM 文件</div></div>';
+                    list.innerHTML = '<div style="text-align:center; color:#888; padding:40px;"><div style="font-size:48px; margin-bottom:15px;">&#x1F4ED;</div><div>暂无 DICOM 研究</div><div style="font-size:12px; margin-top:10px;">请先在大厅上传 DICOM 文件</div></div>';
                     return;
                 }
 
@@ -424,7 +585,6 @@
             }
         }
 
-        // 选择研究并关联到病例
         async function selectStudy(studyUid, orthancId) {
             if (!confirm('确定要将此研究关联到当前病例吗？')) return;
 
@@ -444,7 +604,6 @@
                 if (res.ok) {
                     showToast('影像已关联成功！', 'success');
                     closeStudySelector();
-                    // 重新加载页面
                     window.location.reload();
                 } else {
                     const err = await res.json();
@@ -461,7 +620,7 @@
         <div style="background:#16213e; border-radius:12px; padding:25px; width:90%; max-width:600px; max-height:80vh; overflow:hidden; display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h3 style="color:#4db8ff; margin:0;">选择 DICOM 研究</h3>
-                <button onclick="closeStudySelector()" style="background:none; border:none; color:#888; font-size:20px; cursor:pointer;">✕</button>
+                <button onclick="closeStudySelector()" style="background:none; border:none; color:#888; font-size:20px; cursor:pointer;">&#x2715;</button>
             </div>
             <div id="studies-list" style="flex:1; overflow-y:auto; margin-bottom:20px;">
                 <div style="text-align:center; color:#888; padding:20px;">加载中...</div>
