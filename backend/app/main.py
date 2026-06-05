@@ -142,7 +142,7 @@ class AnnotationCreate(BaseModel):
 app = FastAPI(
     title="放射科专业病例阅片学习平台 API",
     description="支持图谱分类、结构化模板与标注持久化",
-    version="1.1.0",
+    version="1.2.0",
     root_path="/api"
 )
 
@@ -249,8 +249,6 @@ def read_systems(db: Session = Depends(get_db)):
 
 @app.post("/systems/", response_model=SystemResponse)
 def create_system(system: SystemCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
     db_system = System(**system.dict())
     db.add(db_system)
     db.commit()
@@ -261,8 +259,6 @@ def create_system(system: SystemCreate, db: Session = Depends(get_db), current_u
 
 @app.post("/cases/", response_model=CaseResponse)
 def create_case(case: CaseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足，只有教师可以创建病例")
     db_case = Case(**case.dict())
     db.add(db_case)
     db.commit()
@@ -294,8 +290,6 @@ def read_case(case_id: int, db: Session = Depends(get_db)):
 
 @app.put("/cases/{case_id}", response_model=CaseResponse)
 def update_case(case_id: int, case: CaseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
     db_case = db.query(Case).filter(Case.id == case_id).first()
     if db_case is None:
         raise HTTPException(status_code=404, detail="病例未找到")
@@ -307,8 +301,6 @@ def update_case(case_id: int, case: CaseCreate, db: Session = Depends(get_db), c
 
 @app.delete("/cases/{case_id}")
 def delete_case(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
     case = db.query(Case).filter(Case.id == case_id).first()
     if case is None:
         raise HTTPException(status_code=404, detail="病例未找到")
@@ -320,8 +312,6 @@ def delete_case(case_id: int, db: Session = Depends(get_db), current_user: User 
 
 @app.post("/case-images/", response_model=CaseImageResponse)
 def create_case_image(image: CaseImageCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
     db_image = CaseImage(**image.dict())
     db.add(db_image)
     db.commit()
@@ -345,8 +335,6 @@ def read_case_image(image_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/case-images/{image_id}")
 def delete_case_image(image_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
     image = db.query(CaseImage).filter(CaseImage.id == image_id).first()
     if image is None:
         raise HTTPException(status_code=404, detail="影像未找到")
@@ -394,8 +382,6 @@ def read_comments(case_id: int, db: Session = Depends(get_db)):
 
 @app.post("/cases/{case_id}/reports", response_model=ReportResponse)
 def add_report(case_id: int, report: ReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足，只有教师可以添加报告")
     case = db.query(Case).filter(Case.id == case_id).first()
     if case is None:
         raise HTTPException(status_code=404, detail="病例未找到")
@@ -446,13 +432,10 @@ async def upload_dicom_files(
     current_user: User = Depends(get_current_user)
 ):
     """上传 DICOM 文件到 Orthanc"""
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足，只有教师可以上传 DICOM 文件")
-
     results = []
     async with httpx.AsyncClient() as client:
         for file in files:
-            if not file.filename.endswith('.dcm'):
+            if not file.filename.lower().endswith('.dcm'):
                 results.append({"filename": file.filename, "status": "skipped", "reason": "不是 DICOM 文件"})
                 continue
 
@@ -488,9 +471,6 @@ async def upload_dicom_folder(
     current_user: User = Depends(get_current_user)
 ):
     """上传 DICOM 文件夹（多个文件）到 Orthanc，并关联到病例"""
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
-
     results = []
     uploaded_instances = []
 
@@ -584,9 +564,6 @@ async def get_dicom_study(study_id: str, current_user: User = Depends(get_curren
 @app.delete("/dicom/studies/{study_id}")
 async def delete_dicom_study(study_id: str, current_user: User = Depends(get_current_user)):
     """删除 Orthanc 中的研究"""
-    if current_user.role not in ["admin"]:
-        raise HTTPException(status_code=403, detail="权限不足")
-
     async with httpx.AsyncClient() as client:
         try:
             response = await client.delete(f"{ORTHANC_URL}/studies/{study_id}", timeout=10.0)

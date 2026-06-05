@@ -177,14 +177,10 @@
             const roleText = currentUser.role === 'admin' ? '管理员' : currentUser.role === 'teacher' ? '教师' : '学生';
             document.getElementById('display-role').textContent = roleText;
 
-            // 所有登录用户都能看到 DICOM 研究列表
+            // 所有登录用户都能看到 DICOM 研究列表和上传功能
             document.getElementById('dicom-studies').style.display = 'block';
+            document.getElementById('upload-section').style.display = 'block';
             loadDicomStudies();
-
-            // 只有教师/管理员显示上传功能
-            if (currentUser.role === 'teacher' || currentUser.role === 'admin') {
-                document.getElementById('upload-section').style.display = 'block';
-            }
         }
 
         function showAuthForm() {
