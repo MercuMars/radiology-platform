@@ -509,7 +509,8 @@ async def upload_dicom_folder(
                         finally:
                             db.close()
                 else:
-                    results.append({"filename": file.filename, "status": "error", "reason": response.text})
+                    # 尝试作为非 DICOM 文件跳过
+                    results.append({"filename": file.filename, "status": "skipped", "reason": "非 DICOM 文件或格式错误"})
             except Exception as e:
                 results.append({"filename": file.filename, "status": "error", "reason": str(e)})
 

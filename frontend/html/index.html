@@ -125,10 +125,14 @@
                 <h2 class="section-title">📤 上传 DICOM 文件</h2>
                 <div class="upload-area" id="upload-area">
                     <div class="icon">📁</div>
-                    <p>拖拽 DICOM 文件到此处，或点击选择文件</p>
-                    <p style="font-size: 12px; color: #999;">支持 .dcm 文件，可同时选择多个文件</p>
-                    <input type="file" id="dicom-files" multiple accept=".dcm" onchange="handleFileSelect(this)">
-                    <button class="btn btn-primary" onclick="document.getElementById('dicom-files').click()">选择文件</button>
+                    <p>拖拽 DICOM 文件/文件夹到此处，或点击选择</p>
+                    <p style="font-size: 12px; color: #999;">支持 .dcm 文件和无扩展名的 DICOM 文件，可批量上传</p>
+                    <input type="file" id="dicom-files" multiple onchange="handleFileSelect(this)" style="display: none;">
+                    <input type="file" id="dicom-folder" webkitdirectory directory multiple onchange="handleFolderSelect(this)" style="display: none;">
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="document.getElementById('dicom-files').click()">选择文件</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('dicom-folder').click()">选择文件夹</button>
+                    </div>
                 </div>
                 <div class="upload-progress" id="upload-progress">
                     <div class="progress-bar">
@@ -382,6 +386,10 @@
             handleFiles(input.files);
         }
 
+        function handleFolderSelect(input) {
+            handleFiles(input.files);
+        }
+
         async function handleFiles(files) {
             if (!files || files.length === 0) return;
 
@@ -398,15 +406,14 @@
             const formData = new FormData();
             let fileCount = 0;
 
+            // 上传所有文件（不限制扩展名，因为很多 DICOM 文件没有 .dcm 后缀）
             for (let i = 0; i < files.length; i++) {
-                if (files[i].name.toLowerCase().endsWith('.dcm')) {
-                    formData.append('files', files[i]);
-                    fileCount++;
-                }
+                formData.append('files', files[i]);
+                fileCount++;
             }
 
             if (fileCount === 0) {
-                showToast('没有找到 .dcm 文件', 'error');
+                showToast('没有找到文件', 'error');
                 progressDiv.style.display = 'none';
                 return;
             }
