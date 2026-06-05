@@ -38,6 +38,8 @@ class Case(Base):
     diagnosis = Column(Text)
     teaching_points = Column(Text)
     difficulty_level = Column(Integer, default=1)
+    study_uid = Column(String(255))  # DICOM StudyInstanceUID
+    orthanc_id = Column(String(255))  # Orthanc 研究ID
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

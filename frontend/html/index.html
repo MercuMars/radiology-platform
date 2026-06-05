@@ -665,7 +665,9 @@
                 system_id: document.getElementById('case-system').value ? parseInt(document.getElementById('case-system').value) : null,
                 description: document.getElementById('case-history').value,
                 diagnosis: document.getElementById('case-diagnosis').value,
-                teaching_points: document.getElementById('case-teaching').value
+                teaching_points: document.getElementById('case-teaching').value,
+                study_uid: document.getElementById('case-study-uid').value || null,
+                orthanc_id: document.getElementById('case-orthanc-id').value || null
             };
 
             try {

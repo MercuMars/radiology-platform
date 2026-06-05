@@ -67,6 +67,21 @@ class CaseCreate(BaseModel):
     diagnosis: Optional[str] = None
     teaching_points: Optional[str] = None
     difficulty_level: Optional[int] = 1
+    study_uid: Optional[str] = None
+    orthanc_id: Optional[str] = None
+
+class CaseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    patient_id: Optional[str] = None
+    modality: Optional[str] = None
+    system_id: Optional[int] = None
+    body_part: Optional[str] = None
+    diagnosis: Optional[str] = None
+    teaching_points: Optional[str] = None
+    difficulty_level: Optional[int] = None
+    study_uid: Optional[str] = None
+    orthanc_id: Optional[str] = None
 
 class CaseResponse(BaseModel):
     id: int
@@ -79,6 +94,8 @@ class CaseResponse(BaseModel):
     diagnosis: Optional[str] = None
     teaching_points: Optional[str] = None
     difficulty_level: Optional[int] = 1
+    study_uid: Optional[str] = None
+    orthanc_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     class Config:
@@ -142,8 +159,7 @@ class AnnotationCreate(BaseModel):
 app = FastAPI(
     title="放射科专业病例阅片学习平台 API",
     description="支持图谱分类、结构化模板与标注持久化",
-    version="1.2.0",
-    root_path="/api"
+    version="1.2.0"
 )
 
 app.add_middleware(
@@ -290,11 +306,11 @@ def read_case(case_id: int, db: Session = Depends(get_db)):
     return case
 
 @app.put("/cases/{case_id}", response_model=CaseResponse)
-def update_case(case_id: int, case: CaseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_case(case_id: int, case: CaseUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_case = db.query(Case).filter(Case.id == case_id).first()
     if db_case is None:
         raise HTTPException(status_code=404, detail="病例未找到")
-    for key, value in case.dict().items():
+    for key, value in case.dict(exclude_unset=True).items():
         setattr(db_case, key, value)
     db.commit()
     db.refresh(db_case)
