@@ -41,6 +41,7 @@ services:
       - APP_CONFIG=/usr/share/nginx/html/app-config.js
     volumes:
       - ./frontend/ohif-config.js:/usr/share/nginx/html/app-config.js:ro
+      - ./frontend/ohif-index.html:/usr/share/nginx/html/index.html:ro
 
 volumes:
   pgdata:
