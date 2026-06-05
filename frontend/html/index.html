@@ -470,7 +470,7 @@
             }
 
             list.innerHTML = studies.map(s => `
-                <div class="study-card">
+                <div class="study-card" onclick="openViewer('${s.study_instance_uid || ''}', '${s.orthanc_id}')" style="cursor: pointer;">
                     <div class="study-info">
                         <div>
                             <strong>${s.patient_name || '未知患者'}</strong>
@@ -482,8 +482,20 @@
                         <span>日期: ${s.study_date || 'N/A'}</span>
                         <span style="margin-left: 15px;">${s.study_description || ''}</span>
                     </div>
+                    <div style="margin-top: 8px; color: #667eea; font-size: 12px;">点击打开阅片 →</div>
                 </div>
             `).join('');
+        }
+
+        // ==================== 打开查看器 ====================
+        function openViewer(studyInstanceUid, orthancId) {
+            if (studyInstanceUid) {
+                // 使用 StudyInstanceUID 打开 OHIF Viewer
+                window.open(`/viewer/?StudyInstanceUIDs=${studyInstanceUid}`, '_blank');
+            } else {
+                // 使用 Orthanc ID 打开
+                window.open(`/viewer/?OrthancStudyID=${orthancId}`, '_blank');
+            }
         }
 
         // ==================== 工具函数 ====================

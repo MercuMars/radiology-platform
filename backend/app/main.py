@@ -557,6 +557,7 @@ async def list_dicom_studies(current_user: User = Depends(get_current_user)):
                         patient_tags = detail.get("PatientMainDicomTags", {})
                         study_list.append({
                             "orthanc_id": study_id,
+                            "study_instance_uid": main_tags.get("StudyInstanceUID", ""),
                             "patient_name": patient_tags.get("PatientName", "未知"),
                             "patient_id": patient_tags.get("PatientID", "未知"),
                             "study_date": main_tags.get("StudyDate", ""),
