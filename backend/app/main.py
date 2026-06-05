@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
-import hashlib
+from passlib.context import CryptContext
 import jwt
 import os
 import httpx
@@ -17,13 +17,13 @@ from .models import User, System, Case, CaseImage, Comment, Report, Collection, 
 SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_medical_key_2024")
 ALGORITHM = "HS256"
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 def hash_password(password: str) -> str:
-    """使用 SHA256 哈希密码"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """验证密码"""
-    return hash_password(plain_password) == hashed_password
+    return pwd_context.verify(plain_password, hashed_password)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -193,14 +193,15 @@ async def startup():
             db.add_all(default_systems)
             db.commit()
 
-        # 初始化默认报告模板
+        # 初始化默认报告模板（修复并发初始化 Bug）
         if db.query(Template).count() == 0:
-            default_templates = [
-                Template(name="LI-RADS 肝脏结节报告", modality="CT", body_part="肝脏", content_findings="肝脏形态大小正常，表面光滑。动脉期可见一大小约[]mm强化结节，静脉期/延迟期呈廓清表现，包膜强化(+)。", content_impression="符合 LI-RADS 5类典型肝细胞癌表现。"),
-                Template(name="肺结节标准报告 (Lung-RADS)", modality="CT", body_part="肺部", content_findings="双肺纹理清晰。[]肺[]叶可见一实性/磨玻璃结节，直径约[]mm，边缘见分叶/毛刺/胸膜牵拉征。", content_impression="肺部结节，建议结合临床及历史影像对比，Lung-RADS []类。")
-            ]
-            db.add_all(default_templates)
-            db.commit()
+            if not db.query(Template).filter(Template.name == "LI-RADS 肝脏结节报告").first():
+                default_templates = [
+                    Template(name="LI-RADS 肝脏结节报告", modality="CT", body_part="肝脏", content_findings="肝脏形态大小正常，表面光滑。动脉期可见一大小约[]mm强化结节，静脉期/延迟期呈廓清表现，包膜强化(+)。", content_impression="符合 LI-RADS 5类典型肝细胞癌表现。"),
+                    Template(name="肺结节标准报告 (Lung-RADS)", modality="CT", body_part="肺部", content_findings="双肺纹理清晰。[]肺[]叶可见一实性/磨玻璃结节，直径约[]mm，边缘见分叶/毛刺/胸膜牵拉征。", content_impression="肺部结节，建议结合临床及历史影像对比，Lung-RADS []类。")
+                ]
+                db.add_all(default_templates)
+                db.commit()
     finally:
         db.close()
 
@@ -467,10 +468,13 @@ async def upload_dicom_files(
 @app.post("/dicom/upload-folder")
 async def upload_dicom_folder(
     files: List[UploadFile] = File(...),
-    case_id: Optional[int] = None,
+    system_id: Optional[int] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
-    """上传 DICOM 文件夹（多个文件）到 Orthanc，并关联到病例"""
+    """上传 DICOM 并可选绑定至分类系统"""
+    if current_user.role not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="权限不足")
+
     results = []
     uploaded_instances = []
 
@@ -488,37 +492,32 @@ async def upload_dicom_folder(
                     result = response.json()
                     instance_id = result.get("ID")
                     uploaded_instances.append(instance_id)
-                    results.append({
-                        "filename": file.filename,
-                        "status": "success",
-                        "instance_id": instance_id
-                    })
-
-                    # 如果指定了 case_id，保存关联
-                    if case_id and instance_id:
-                        db_image = CaseImage(
-                            case_id=case_id,
-                            dicom_instance_id=instance_id,
-                            image_type="axial",
-                            description=f"从 {file.filename} 上传"
-                        )
-                        db = SessionLocal()
-                        try:
-                            db.add(db_image)
-                            db.commit()
-                        finally:
-                            db.close()
+                    results.append({"filename": file.filename, "status": "success", "instance_id": instance_id})
                 else:
-                    # 尝试作为非 DICOM 文件跳过
-                    results.append({"filename": file.filename, "status": "skipped", "reason": "非 DICOM 文件或格式错误"})
+                    results.append({"filename": file.filename, "status": "error", "reason": response.text})
             except Exception as e:
                 results.append({"filename": file.filename, "status": "error", "reason": str(e)})
 
-    return {
-        "uploaded": len(uploaded_instances),
-        "instance_ids": uploaded_instances,
-        "results": results
-    }
+    # 自动新建 Case 并关联图像
+    if system_id and uploaded_instances:
+        db = SessionLocal()
+        try:
+            new_case = Case(
+                title=f"新上传研究 - {datetime.now().strftime('%Y%m%d')}",
+                system_id=system_id
+            )
+            db.add(new_case)
+            db.commit()
+            db.refresh(new_case)
+
+            for inst_id in uploaded_instances:
+                db_image = CaseImage(case_id=new_case.id, dicom_instance_id=inst_id, image_type="axial", description="批量上传")
+                db.add(db_image)
+            db.commit()
+        finally:
+            db.close()
+
+    return {"uploaded": len(uploaded_instances), "instance_ids": uploaded_instances, "results": results}
 
 @app.get("/dicom/studies")
 async def list_dicom_studies(current_user: User = Depends(get_current_user)):

@@ -140,6 +140,10 @@
                     <div class="icon">📁</div>
                     <p>拖拽 DICOM 文件/文件夹到此处，或点击选择</p>
                     <p style="font-size: 12px; color: #999;">支持 .dcm 文件和无扩展名的 DICOM 文件，可批量上传</p>
+                    <select id="upload-system-id" style="margin-bottom: 15px; padding: 8px; width: 80%; border-radius: 4px; background: #333; color: white; border: 1px solid #555;">
+                        <option value="">-- (可选) 归档至指定系统 --</option>
+                    </select>
+                    <br>
                     <input type="file" id="dicom-files" multiple onchange="handleFileSelect(this)" style="display: none;">
                     <input type="file" id="dicom-folder" webkitdirectory directory multiple onchange="handleFolderSelect(this)" style="display: none;">
                     <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
@@ -385,6 +389,15 @@
                     </div>
                 `;
             });
+
+            // 同步更新上传区域的系统选择下拉框
+            const uploadSystemSelect = document.getElementById('upload-system-id');
+            if (uploadSystemSelect) {
+                uploadSystemSelect.innerHTML = '<option value="">-- (可选) 归档至指定系统 --</option>';
+                systems.forEach(system => {
+                    uploadSystemSelect.innerHTML += `<option value="${system.id}">${system.icon || '🔬'} ${system.name}</option>`;
+                });
+            }
         }
 
         function filterBySystem(systemId) {
@@ -519,10 +532,18 @@
             const formData = new FormData();
             let fileCount = 0;
 
-            // 上传所有文件（不限制扩展名，因为很多 DICOM 文件没有 .dcm 后缀）
+            // 追加选择的文件
             for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-                fileCount++;
+                if (files[i].name.toLowerCase().endsWith('.dcm') || files[i].name.toLowerCase().endsWith('.ima')) {
+                    formData.append('files', files[i]);
+                    fileCount++;
+                }
+            }
+
+            // 【新增】：读取用户选择的分类系统
+            const sysId = document.getElementById('upload-system-id').value;
+            if (sysId) {
+                formData.append('system_id', sysId);
             }
 
             if (fileCount === 0) {

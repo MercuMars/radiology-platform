@@ -22,8 +22,8 @@ class System(Base):
 
 case_collection_association = Table(
     'case_collections', Base.metadata,
-    Column('case_id', Integer, ForeignKey('cases.id')),
-    Column('collection_id', Integer, ForeignKey('collections.id'))
+    Column('case_id', Integer, ForeignKey('cases.id', ondelete="CASCADE")),
+    Column('collection_id', Integer, ForeignKey('collections.id', ondelete="CASCADE"))
 )
 
 class Case(Base):
@@ -33,7 +33,7 @@ class Case(Base):
     description = Column(Text)
     patient_id = Column(String(100))
     modality = Column(String(50))
-    system_id = Column(Integer, ForeignKey("systems.id"))
+    system_id = Column(Integer, ForeignKey("systems.id", ondelete="SET NULL"))
     body_part = Column(String(100))
     diagnosis = Column(Text)
     teaching_points = Column(Text)
@@ -44,7 +44,7 @@ class Case(Base):
 class CaseImage(Base):
     __tablename__ = "case_images"
     id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"))
     dicom_instance_id = Column(String(255))
     image_type = Column(String(50))
     description = Column(Text)
@@ -53,19 +53,19 @@ class CaseImage(Base):
 class Comment(Base):
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Report(Base):
     __tablename__ = "reports"
     id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"))
     technique = Column(Text)
     findings = Column(Text)
     impression = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Collection(Base):
@@ -73,14 +73,14 @@ class Collection(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     created_at = Column(DateTime, default=datetime.utcnow)
     cases = relationship("Case", secondary=case_collection_association, backref="collections")
 
 class Template(Base):
     __tablename__ = "templates"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
     modality = Column(String(50))
     body_part = Column(String(100))
     content_findings = Column(Text)
@@ -89,7 +89,7 @@ class Template(Base):
 class Annotation(Base):
     __tablename__ = "annotations"
     id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(Integer, ForeignKey("cases.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     annotation_data = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

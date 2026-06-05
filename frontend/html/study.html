@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8"><title>阅片与讨论 - 高级教学模式</title>
+    <meta charset="UTF-8"><title>阅片与讨论 - 左右分屏教学</title>
     <style>
-        body { margin: 0; display: flex; height: 100vh; font-family: sans-serif; background: #121212; color: #e0e0e0; }
-        #viewer-container { flex: 65%; border-right: 2px solid #333; position: relative; }
+        body { margin: 0; display: flex; height: 100vh; overflow: hidden; font-family: sans-serif; background: #121212; color: #e0e0e0; }
+
+        /* 强化分屏布局，确保不会被撑开 */
+        #viewer-container { flex: 0 0 65%; border-right: 2px solid #333; position: relative; height: 100vh; }
         iframe { width: 100%; height: 100%; border: none; }
-        #panel-container { flex: 35%; display: flex; flex-direction: column; background: #1e1e1e; padding: 20px; overflow-y:auto;}
+
+        #panel-container { flex: 0 0 35%; display: flex; flex-direction: column; background: #1e1e1e; padding: 20px; box-sizing: border-box; height: 100vh; overflow-y: auto; }
+
         .report-section { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px;}
         .template-selector { width: 100%; padding: 8px; margin-bottom: 10px; background: #333; color: white; border: 1px solid #555; }
-        textarea { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 8px; margin-bottom: 10px; box-sizing: border-box; min-height: 80px;}
+        textarea { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 8px; margin-bottom: 10px; box-sizing: border-box; min-height: 120px; font-size: 14px;}
         .anno-section { background: rgba(102,126,234,0.1); padding: 15px; border-radius: 8px; border: 1px solid #667eea; margin-bottom: 15px;}
-        button { padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+        button { padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 5px;}
         button:hover { background: #764ba2; }
-        .comment-section { background: #252525; padding: 15px; border-radius: 8px; margin-top: 15px; }
-        .comment-item { background: #333; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;}
     </style>
 </head>
 <body>
@@ -24,35 +26,28 @@
 
     <div id="panel-container">
         <div class="anno-section">
-            <h3 style="margin-top:0; color:#667eea;">📐 ROI 标注联动</h3>
+            <h3 style="margin-top:0; color:#667eea;">📐 阅片标注控制台</h3>
             <p style="font-size: 12px; color: #aaa;">使用左侧 OHIF 工具画图后，可将测量坐标持久化至数据库。</p>
-            <button onclick="saveAnnotations()">保存当前标注</button>
-            <button onclick="loadAnnotations()" style="background: #2ed573;">刷新历史标注</button>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="saveAnnotations()">存档标注</button>
+                <button onclick="loadAnnotations()" style="background: #2ed573;">刷新记录</button>
+            </div>
             <div id="anno-list" style="margin-top: 10px; font-size: 12px; color: #888;"></div>
         </div>
 
         <div class="report-section">
-            <h3 style="margin-top:0; color:#4db8ff">📝 结构化书写训练</h3>
+            <h3 style="margin-top:0; color:#4db8ff">📝 结构化报告系统</h3>
             <select id="template-select" class="template-selector" onchange="applyTemplate()">
-                <option value="">-- 选择临床标准模板 --</option>
+                <option value="">-- 点击选择临床标准模板 --</option>
             </select>
 
             <h4 style="margin: 10px 0 5px 0;">影像表现 (Findings)</h4>
-            <textarea id="input-findings" placeholder="在此书写影像表现..."></textarea>
+            <textarea id="input-findings" placeholder="仔细观察影像，记录异常征象..."></textarea>
 
             <h4 style="margin: 10px 0 5px 0;">诊断意见 (Impression)</h4>
-            <textarea id="input-impression" placeholder="在此书写诊断结论..."></textarea>
+            <textarea id="input-impression" placeholder="结合临床信息得出结论..."></textarea>
 
-            <button onclick="submitReport()">提交报告</button>
-        </div>
-
-        <div class="comment-section">
-            <h3 style="margin-top:0; color:#2ed573">💬 讨论区</h3>
-            <div id="comments-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="comment-text" placeholder="输入留言..." style="flex: 1; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
-                <button onclick="submitComment()">发送</button>
-            </div>
+            <button onclick="submitReport()" style="background: #ff4757; margin-top: 10px;">正式归档提交</button>
         </div>
     </div>
 
@@ -64,110 +59,144 @@
 
         document.getElementById('ohif-iframe').src = `/viewer?StudyInstanceUIDs=${studyUid}`;
 
-        // 加载模板
         async function loadTemplates() {
             const res = await fetch('/api/templates/');
             templatesData = await res.json();
             const select = document.getElementById('template-select');
             templatesData.forEach(t => {
                 const option = document.createElement('option');
-                option.value = t.id;
-                option.text = t.name;
-                select.appendChild(option);
+                option.value = t.id; option.text = t.name; select.appendChild(option);
             });
         }
 
-        // 应用模板
         function applyTemplate() {
             const val = document.getElementById('template-select').value;
             const t = templatesData.find(x => x.id == val);
             if(t) {
+                // 防误触：如果有内容则提示
+                const currentText = document.getElementById('input-findings').value.trim();
+                if (currentText !== '' && !confirm('应用模板将会覆盖你目前输入的内容，是否继续？')) {
+                    document.getElementById('template-select').value = "";
+                    return;
+                }
                 document.getElementById('input-findings').value = t.findings;
                 document.getElementById('input-impression').value = t.impression;
             }
         }
 
-        // 提交报告
+        // 真实调用 API 提交结构化报告
         async function submitReport() {
             const token = localStorage.getItem('radio_token');
-            if(!token) return alert('请先登录');
+            if(!token) return alert('权限拒绝：请先返回首页登录系统！');
 
             const findings = document.getElementById('input-findings').value;
             const impression = document.getElementById('input-impression').value;
 
-            const res = await fetch(`/api/cases/${caseId}/reports`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ case_id: parseInt(caseId), findings, impression })
-            });
+            if(!findings && !impression) return alert('报告内容不能为空！');
 
-            if(res.ok) {
-                alert('报告提交成功！');
-            } else {
-                alert('提交失败，请重试');
+            try {
+                const res = await fetch(`/api/cases/${caseId}/reports`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        case_id: parseInt(caseId),
+                        findings: findings,
+                        impression: impression
+                    })
+                });
+
+                if(res.ok) {
+                    alert('报告已成功归档！');
+                    loadExistingReports();
+                } else {
+                    const err = await res.json();
+                    alert('提交失败: ' + (err.detail || '未知错误'));
+                }
+            } catch(e) {
+                alert('网络错误: ' + e.message);
             }
         }
 
-        // 保存标注
+        // 加载已有报告
+        async function loadExistingReports() {
+            try {
+                const res = await fetch(`/api/cases/${caseId}/reports`);
+                if(res.ok) {
+                    const reports = await res.json();
+                    if(reports.length > 0) {
+                        const latest = reports[0];
+                        if(!document.getElementById('input-findings').value) {
+                            document.getElementById('input-findings').value = latest.findings || '';
+                        }
+                        if(!document.getElementById('input-impression').value) {
+                            document.getElementById('input-impression').value = latest.impression || '';
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error('加载报告失败:', e);
+            }
+        }
+
+        // 标注相关
         async function saveAnnotations() {
             const token = localStorage.getItem('radio_token');
-            if(!token) return alert('请先登录');
-            const dummyData = JSON.stringify({ tool: "Length", points: [[100,200], [150,250]], text: "示例标注" });
+            if(!token) return alert('请先登录！');
 
-            await fetch(`/api/cases/${caseId}/annotations`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ annotation_data: dummyData })
+            // 这里可以扩展为从 OHIF 获取标注数据
+            const annoData = JSON.stringify({
+                timestamp: new Date().toISOString(),
+                note: '用户手动存档标注点',
+                case_id: caseId
             });
-            alert('标注保存成功！');
-            loadAnnotations();
-        }
 
-        // 加载标注历史
-        async function loadAnnotations() {
-            const res = await fetch(`/api/cases/${caseId}/annotations`);
-            const data = await res.json();
-            const list = document.getElementById('anno-list');
-            list.innerHTML = data.map(a => `<div>👤 ${a.username} 于 ${new Date(a.time).toLocaleString()} 保存了标注</div>`).join('');
-        }
+            try {
+                const res = await fetch(`/api/cases/${caseId}/annotations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ annotation_data: annoData })
+                });
 
-        // 加载讨论
-        async function loadComments() {
-            const res = await fetch(`/api/cases/${caseId}/comments`);
-            if(res.ok) {
-                const data = await res.json();
-                document.getElementById('comments-list').innerHTML = data.map(c =>
-                    `<div class="comment-item"><strong>${c.username}</strong> <span style="font-size:12px;color:#888;">${new Date(c.created_at).toLocaleString()}</span><br><div style="margin-top:5px">${c.content}</div></div>`
-                ).join('');
+                if(res.ok) {
+                    alert('标注已存档');
+                    loadAnnotations();
+                }
+            } catch(e) {
+                alert('存档失败: ' + e.message);
             }
         }
 
-        // 提交评论
-        async function submitComment() {
-            const token = localStorage.getItem('radio_token');
-            if(!token) return alert('请先登录');
-
-            const content = document.getElementById('comment-text').value;
-            if(!content.trim()) return;
-
-            const res = await fetch(`/api/cases/${caseId}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ content })
-            });
-
-            if(res.ok) {
-                document.getElementById('comment-text').value = '';
-                loadComments();
-            } else {
-                alert('发送失败，请重试');
+        async function loadAnnotations() {
+            try {
+                const res = await fetch(`/api/cases/${caseId}/annotations`);
+                if(res.ok) {
+                    const annos = await res.json();
+                    const list = document.getElementById('anno-list');
+                    if(annos.length === 0) {
+                        list.innerHTML = '<p>暂无标注记录</p>';
+                    } else {
+                        list.innerHTML = annos.map(a => `
+                            <div style="background: #333; padding: 8px; margin-bottom: 5px; border-radius: 4px;">
+                                <strong>${a.username}</strong> - ${new Date(a.time).toLocaleString()}
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch(e) {
+                console.error('加载标注失败:', e);
             }
         }
 
         // 初始化
         loadTemplates();
+        loadExistingReports();
         loadAnnotations();
-        loadComments();
     </script>
 </body>
 </html>

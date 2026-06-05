@@ -3,6 +3,7 @@ uvicorn
 psycopg2-binary
 python-multipart
 PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
 sqlalchemy
 alembic
 httpx
