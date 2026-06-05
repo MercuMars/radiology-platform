@@ -552,13 +552,16 @@ async def list_dicom_studies(current_user: User = Depends(get_current_user)):
                     detail_response = await client.get(f"{ORTHANC_URL}/studies/{study_id}", timeout=10.0)
                     if detail_response.status_code == 200:
                         detail = detail_response.json()
+                        # Orthanc 嵌套结构：MainDicomTags 和 PatientMainDicomTags
+                        main_tags = detail.get("MainDicomTags", {})
+                        patient_tags = detail.get("PatientMainDicomTags", {})
                         study_list.append({
                             "orthanc_id": study_id,
-                            "patient_name": detail.get("PatientName", "未知"),
-                            "patient_id": detail.get("PatientID", "未知"),
-                            "study_date": detail.get("StudyDate", ""),
-                            "study_description": detail.get("StudyDescription", ""),
-                            "modality": detail.get("ModalitiesInStudy", [])
+                            "patient_name": patient_tags.get("PatientName", "未知"),
+                            "patient_id": patient_tags.get("PatientID", "未知"),
+                            "study_date": main_tags.get("StudyDate", ""),
+                            "study_description": main_tags.get("StudyDescription", ""),
+                            "modality": main_tags.get("ModalitiesInStudy", [])
                         })
                 return study_list
             return []
