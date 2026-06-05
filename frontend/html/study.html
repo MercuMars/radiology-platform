@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"><title>阅片与讨论</title>
+    <style>
+        body { margin: 0; display: flex; height: 100vh; font-family: sans-serif; background: #121212; color: #e0e0e0; }
+        #viewer-container { flex: 65%; border-right: 2px solid #333; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #panel-container { flex: 35%; display: flex; flex-direction: column; background: #1e1e1e; padding: 20px;}
+        .report-section { flex: 1; overflow-y: auto; border-bottom: 1px solid #444; margin-bottom:15px; }
+        .comment-item { background: #333; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 14px;}
+    </style>
+</head>
+<body>
+    <div id="viewer-container">
+        <iframe id="ohif-iframe" src=""></iframe>
+    </div>
+    <div id="panel-container">
+        <div class="report-section">
+            <h3 style="color:#4db8ff">影像表现 (Findings)</h3>
+            <p id="rep-findings">加载中...</p>
+            <h3 style="color:#4db8ff">诊断意见 (Impression)</h3>
+            <p id="rep-impression">加载中...</p>
+        </div>
+        <div style="height: 40%; display: flex; flex-direction: column;">
+            <h3>讨论区</h3>
+            <div id="comments-list" style="flex:1; overflow-y:auto; margin-bottom:10px;"></div>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="comment-text" placeholder="输入留言..." style="flex:1; padding:8px; background:#333; color:white; border:1px solid #555;">
+                <button onclick="submitComment()" style="padding:8px 15px; background:#4db8ff; border:none; font-weight:bold; cursor:pointer;">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const caseId = urlParams.get('case_id');
+        const studyUid = urlParams.get('study_uid');
+
+        document.getElementById('ohif-iframe').src = `/viewer?StudyInstanceUIDs=${studyUid}`;
+
+        async function loadDetails() {
+            const res = await fetch(`/api/cases/${caseId}/details`);
+            const data = await res.json();
+            if(data.report) {
+                document.getElementById('rep-findings').innerText = data.report.findings || '暂无内容';
+                document.getElementById('rep-impression').innerText = data.report.impression || '暂无内容';
+            }
+            document.getElementById('comments-list').innerHTML = data.comments.map(c =>
+                `<div class="comment-item"><strong>${c.username}</strong> <span style="font-size:12px;color:#888;">${c.time}</span><br><div style="margin-top:5px">${c.content}</div></div>`
+            ).join('');
+        }
+
+        async function submitComment() {
+            const token = localStorage.getItem('radio_token');
+            if(!token) return alert('请先回首页登录！');
+
+            const content = document.getElementById('comment-text').value;
+            if(!content.trim()) return;
+
+            const res = await fetch(`/api/cases/${caseId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ content })
+            });
+
+            if(res.ok) {
+                document.getElementById('comment-text').value = '';
+                loadDetails();
+            } else {
+                alert('登录已过期，请重新登录');
+            }
+        }
+        loadDetails();
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/html:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+      - orthanc
+      - viewer
+
+  orthanc:
+    image: jodogne/orthanc-plugins:latest
+    volumes:
+      - ./orthanc-config/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - orthanc_db:/var/lib/orthanc/db
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=radio
+      - POSTGRES_PASSWORD=radio123
+      - POSTGRES_DB=cases
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://radio:radio123@db/cases
+    depends_on:
+      - db
+
+  viewer:
+    image: ohif/viewer:latest
+    environment:
+      - APP_CONFIG=/usr/share/nginx/html/app-config.js
+    volumes:
+      - ./frontend/ohif-config.js:/usr/share/nginx/html/app-config.js:ro
+
+volumes:
+  pgdata:
+  orthanc_db:

@@ -1,0 +1,20 @@
+{
+  "Name": "RadioLearning",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/"
+  },
+  "HttpServerEnabled": true,
+  "DicomServerEnabled": true,
+  "AuthenticationEnabled": false,
+  "RemoteAccessAllowed": true,
+  "StoreDicom": true,
+  "Plugins": [],
+  "CorsRequests": {
+    "AllowOrigin": "*",
+    "AllowCredentials": true,
+    "AllowHeaders": ["Origin", "Accept", "Content-Type", "X-Requested-With", "Authorization"],
+    "AllowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  }
+}

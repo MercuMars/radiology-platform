@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+psycopg2-binary
+python-multipart
+PyJWT==2.8.0
+sqlalchemy
+alembic
+httpx
